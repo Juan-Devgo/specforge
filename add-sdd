@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Install the SDD skills and agents into a project's .claude/ directory.
+#
+# Usage: add-sdd [--force] [target_dir]
+#   target_dir  Project root (default: current directory)
+#   --force     Overwrite files that already exist
+
+set -euo pipefail
+
+# Resolve the real location of this script, even when called through a symlink on $PATH.
+SDD_HOME="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+SKILLS_SRC="$SDD_HOME/skills"
+AGENTS_SRC="$SDD_HOME/.claude/agents"
+
+force=0
+target=""
+for arg in "$@"; do
+  case "$arg" in
+    -f|--force) force=1 ;;
+    -h|--help) sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -*) echo "add-sdd: unknown option: $arg" >&2; exit 1 ;;
+    *) target="$arg" ;;
+  esac
+done
+
+target="$(cd "${target:-.}" && pwd)"
+installed=0
+skipped=0
+
+# copy SRC DEST: copy one file, respecting --force.
+copy() {
+  local src="$1" dest="$2"
+  if [[ "$(readlink -f "$src")" == "$(readlink -f "$dest" 2>/dev/null || true)" ]]; then
+    return
+  fi
+  if [[ -e "$dest" && $force -eq 0 ]]; then
+    echo "  skip   ${dest#$target/} (exists, use --force to overwrite)"
+    skipped=$((skipped + 1))
+    return
+  fi
+  mkdir -p "$(dirname "$dest")"
+  cp "$src" "$dest"
+  echo "  add    ${dest#$target/}"
+  installed=$((installed + 1))
+}
+
+echo "Installing SDD into $target/.claude"
+
+# Skills: skills/<file>.md -> .claude/skills/<frontmatter name>/SKILL.md
+for src in "$SKILLS_SRC"/*.md; do
+  name="$(sed -n 's/^name:[[:space:]]*//p' "$src" | head -n1 | tr -d '[:space:]')"
+  [[ -n "$name" ]] || name="$(basename "$src" .md)"
+  copy "$src" "$target/.claude/skills/$name/SKILL.md"
+done
+
+# Agents: .claude/agents/<file>.md -> .claude/agents/<file>.md
+for src in "$AGENTS_SRC"/*.md; do
+  copy "$src" "$target/.claude/agents/$(basename "$src")"
+done
+
+echo "Done: $installed added, $skipped skipped."
