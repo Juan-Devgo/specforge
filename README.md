@@ -57,7 +57,7 @@ The `planner` is the coordinator and the only agent that talks to you. Subagents
 | 2. Spec | planner | `sdd-spec` | `docs/specs/###-name/spec.md` |
 | 3. Clarify | clarifier | `sdd-clarification` | Answers recorded in the spec, then you approve it |
 | 4. Plan | technician | `sdd-plan`, `sdd-tasks` | `plan.md`, `tasks.md` |
-| 5. Implement | developer | `sdd-implement` | One phase per fresh developer instance |
+| 5. Implement | developer | `sdd-implement` | One phase per request; the same developer is resumed for every phase, writing `progress.md` |
 | 6. Validate | validator | `sdd-validation` | Consistency report (read-only) |
 
 Each agent gets only the tools it needs (lowest privilege): the validator is read-only, and only the planner can ask the user.
